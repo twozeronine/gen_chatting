@@ -21,7 +21,7 @@ defmodule GenChatting.ChattingRoom do
   @impl true
   def handle_call({:enter, room_name}, from, state) do
     state = Map.update(state, room_name, [from], fn existing_value -> [from | existing_value] end)
-    {:reply, state, state}
+    {:reply, room_name, state}
   end
 
   @impl true
