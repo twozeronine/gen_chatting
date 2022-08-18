@@ -2,11 +2,11 @@ defmodule GenChatting.ChattingServer do
   use GenServer
 
   def start_link(_) do
-    GenServer.start_link(__MODULE__, [], name: __MODULE__)
+    GenServer.start_link(__MODULE__, %{}, name: __MODULE__)
   end
 
-  def send(room_name, message) do
-    GenServer.cast(__MODULE__, {:send, room_name, message})
+  def enter(room_name) do
+    GenServer.call(__MODULE__, {:enter, room_name})
   end
 
   @impl true
@@ -15,8 +15,21 @@ defmodule GenChatting.ChattingServer do
   end
 
   @impl true
-  def handle_cast({:send, room_name, message}, state) do
-    GenChatting.ChattingRoom.broad_cast_message(room_name, message)
-    {:noreply, state}
+  def handle_call({:enter, room_name}, from, state) do
+    client_pid = elem(from, 0)
+
+    case Map.has_key?(state, room_name) do
+      false -> GenChatting.ChattingRoomSupervisor.create_room(room_name)
+      _ -> true
+    end
+
+    GenChatting.ChattingRoom.enter({room_name, client_pid})
+
+    state =
+      Map.update(state, room_name, [client_pid], fn existing_value_ ->
+        [client_pid | existing_value_]
+      end)
+
+    {:reply, room_name, state}
   end
 end

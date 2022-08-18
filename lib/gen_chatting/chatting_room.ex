@@ -1,16 +1,16 @@
 defmodule GenChatting.ChattingRoom do
   use GenServer
 
-  def start_link(_) do
-    GenServer.start_link(__MODULE__, %{}  , name: __MODULE__)
+  def start_link(room_name) do
+    GenServer.start_link(__MODULE__, [], name: room_name[:room_name])
   end
 
-  def enter(room_name) do
-    GenServer.call(__MODULE__, {:enter, room_name})
+  def enter({room_name, client_pid}) do
+    GenServer.cast(room_name, {:enter, client_pid})
   end
 
-  def broad_cast_message(room_name, message) do
-    GenServer.cast(__MODULE__, {:broad_cast, room_name, message})
+  def send({room_name, message}) do
+    GenServer.cast(room_name, {:send, message})
   end
 
   @impl true
@@ -19,16 +19,16 @@ defmodule GenChatting.ChattingRoom do
   end
 
   @impl true
-  def handle_call({:enter, room_name}, from, state) do
-    state = Map.update(state, room_name, [from], fn existing_value -> [from | existing_value] end)
-    {:reply, room_name, state}
+  def handle_cast({:enter, client_pid}, state) do
+    case Enum.find_value(state, fn x -> x == client_pid end) do
+      nil -> {:noreply, [client_pid | state]}
+      true -> {:noreply, state}
+    end
   end
 
   @impl true
-  def handle_cast({:broad_cast, room_name, message}, state) do
-    state[room_name]
-    |> Enum.each(fn pid -> send(elem(pid,0) , "#{inspect(elem(pid,0))} : #{message}" ) end)
-
+  def handle_cast({:send, message}, state) do
+    Enum.each(state, fn pid -> send(pid, "#{inspect(pid)} : #{message}") end)
     {:noreply, state}
   end
 end
