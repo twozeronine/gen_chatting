@@ -8,6 +8,7 @@ defmodule GenChatting.Application do
   @impl true
   def start(_type, _args) do
     children = [
+      GenChatting.ChattingRoomStatsh,
       GenChatting.ChattingServer,
       GenChatting.ChattingRoomSupervisor
     ]

@@ -11,7 +11,10 @@ defmodule GenChatting.ChattingServer do
 
   @impl true
   def init(init_arg) do
-    {:ok, init_arg}
+    case GenChatting.ChattingRoomStatsh.get_chatting_room() do
+      %{} -> {:ok, init_arg}
+      restore_chatting_room -> {:ok, restore_chatting_room}
+    end
   end
 
   @impl true
@@ -23,7 +26,7 @@ defmodule GenChatting.ChattingServer do
       _ -> true
     end
 
-    GenChatting.ChattingRoom.enter({room_name, client_pid})
+    GenServer.cast(room_name,{:enter,client_pid})
 
     state =
       Map.update(state, room_name, [client_pid], fn existing_value_ ->
@@ -31,5 +34,10 @@ defmodule GenChatting.ChattingServer do
       end)
 
     {:reply, room_name, state}
+  end
+
+  @impl true
+  def terminate(_reason, state) do
+    GenChatting.ChattingRoomStatsh.restore_chatting_room(state)
   end
 end
